@@ -1,0 +1,8 @@
+{
+    "id": "jid0-iwOV2UmZhlgLSYvfWYs064zYAFY",
+    "author": "azu",
+    "version": "0.4",
+    "dependencies": [ "old-gui" ],
+    "name": "hakkenjinsei",
+    "description": "Display random sites"
+}

@@ -1,0 +1,7 @@
+{
+    "id": "jid0-2Ay7jNAvAMH3OpaPbD1hKA3MooU",
+    "dependencies": [ "old-gui" ],
+    "version": "0.3",
+    "description": "google pagerank",
+    "author": "azu"
+}

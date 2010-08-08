@@ -1,0 +1,8 @@
+{
+    "id": "jid0-n7uoGXNr3dNnUBIsNdDdXh9K9iU", 
+    "dependencies": [
+        "jetpack-core"
+    ], 
+    "description": "OLD GUI API", 
+    "author": "asukaze (http://www.asukaze.net)"
+}
