@@ -66,7 +66,7 @@ function filteredURL(location){
     if(location.href.substr(0,4) != "http"){
         return;
     }
-    if (location.host.indexOf(".") > 0 && !/[^\d\.]+/.test(location.host)){
+    if (location.host.indexOf(".") > 0 && !/[^\d\.:]+/.test(location.host)){
         return false;
     }
     return true;
