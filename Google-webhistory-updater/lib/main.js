@@ -9,7 +9,7 @@ exports.main = function(options, callbacks) {
 };
 // 最近の履歴をローカル内で作る
 function simpleHistory() {
-    this.initialize.apply(this, arguments);
+    this.initialize.apply(this ,arguments);
 }
 simpleHistory.prototype = {
     initialize: function(name ,limit) {
@@ -67,9 +67,15 @@ function filteredURL(location){
         return;
     }
     if (location.host.indexOf(".") > 0 && !/[^\d\.:]+/.test(location.host)){
-        return false;
+        return;
     }
     return true;
+}
+// httpsは ホストのみ
+function getUrlToSendQueryFor(b) {
+    var c = b.match(/^https:\/\/[^\/]*[\/]?/i);
+    if (c) return c[0];
+    return b
 }
 function toHex8(b) {
     return (b < 16 ? "0": "") + b.toString(16)
@@ -89,9 +95,4 @@ function awesomeHash(b) {
     }
     return hexEncodeU32(c)
 }
-// httpsは ホストのみ
-function getUrlToSendQueryFor(b) {
-    var c = b.match(/^https:\/\/[^\/]*[\/]?/i);
-    if (c) return c[0];
-    return b
-}
+
