@@ -2,14 +2,14 @@ var page = {};
 var self = require("self");
 var tabs = require("tabs");
 var {Cc, Ci} = require("chrome");
-// ƒy[ƒWˆÚ“®‚É”½‰‚·‚é
+// ãƒšãƒ¼ã‚¸ç§»å‹•æ™‚ã«åå¿œã™ã‚‹
 // http://d.hatena.ne.jp/cou929_la/20100301/1267434283
 // http://piro.sakura.ne.jp/latest/blosxom/mozilla/xul/2007-01-21_splitbrowser-subbrowser.htm
 var wm = Cc["@mozilla.org/appshell/window-mediator;1"]
                    .getService(Ci.nsIWindowMediator);
-var mainWindow = wm.getMostRecentWindow("navigator:browser"); // gBrowser‚Ì‚½‚ß‚É
+var mainWindow = wm.getMostRecentWindow("navigator:browser"); // gBrowserã®ãŸã‚ã«
 var myExtension = {
-  // nsIWebProgressƒCƒ“ƒ^ƒtƒF[ƒX‚ÌÀ‘•
+  // nsIWebProgressã‚¤ãƒ³ã‚¿ãƒ•ã‚§ãƒ¼ã‚¹ã®å®Ÿè£…
   urlBarListener: {
     QueryInterface: function(aIID) {
       if (aIID.equals(Ci.nsIWebProgressListener) ||
@@ -18,7 +18,7 @@ var myExtension = {
         return this;
     },
 
-    // Œ»İ‚Ìƒ^ƒu‚ÌƒhƒLƒ…ƒƒ“ƒg‚ÌURI‚ª•ÏX‚³‚ê‚½‚çƒR[ƒ‹‚³‚ê‚é
+    // ç¾åœ¨ã®ã‚¿ãƒ–ã®ãƒ‰ã‚­ãƒ¥ãƒ¡ãƒ³ãƒˆã®URIãŒå¤‰æ›´ã•ã‚ŒãŸã‚‰ã‚³ãƒ¼ãƒ«ã•ã‚Œã‚‹
     onLocationChange: function(aProgress, aRequest, aUri) {
       // myExtension.processNewUrl(aUri);
     },
@@ -27,12 +27,12 @@ var myExtension = {
       const nsIWebProgressListener = Ci.nsIWebProgressListener;
       if (aStateFlags & nsIWebProgressListener.STATE_START &&
           aStateFlags & nsIWebProgressListener.STATE_IS_NETWORK) {
-          // “Ç‚İ‚İŠJn‚Ìˆ—
+          // èª­ã¿è¾¼ã¿é–‹å§‹æ™‚ã®å‡¦ç†
           playSound();
       }
       else if (aStateFlags & nsIWebProgressListener.STATE_STOP &&
                aStateFlags & nsIWebProgressListener.STATE_IS_NETWORK) {
-          // “Ç‚İ‚İŠ®—¹‚Ìˆ—
+          // èª­ã¿è¾¼ã¿å®Œäº†æ™‚ã®å‡¦ç†
       }
     },
     onProgressChange: function() {},
@@ -41,12 +41,12 @@ var myExtension = {
     onLinkIconAvailable: function() {}
   },
 
-  // progress listener ‚ğ’Ç‰Á‚·‚é
+  // progress listener ã‚’è¿½åŠ ã™ã‚‹
   init: function() {
     mainWindow.gBrowser.addProgressListener(myExtension.urlBarListener, Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
   },
 
-  // progress listener ‚ğíœ‚·‚é
+  // progress listener ã‚’å‰Šé™¤ã™ã‚‹
   uninit: function() {
     mainWindow.gBrowser.removeProgressListener(myExtension.urlBarListener);
   },
@@ -57,14 +57,14 @@ exports.main = function(options, callbacks) {
     page = pageWorker.Page({
         content: self.data.url("clicksound.html"),
         onReady: function() {
-            myExtension.init();// ƒCƒxƒ“ƒg“o˜^
+            myExtension.init();// ã‚¤ãƒ™ãƒ³ãƒˆç™»éŒ²
         }
     });
     pageWorker.add(page);
 };
 
 function playSound(){
-    var soundObj = page.document.getElementById("clicksound");//page-worker‚Å“®‚¢‚Ä‚éhtml‚É‚ ‚éAudioƒ^ƒO‚ğæ‚Á‚Ä‚­‚é
+    var soundObj = page.document.getElementById("clicksound");//page-workerã§å‹•ã„ã¦ã‚‹htmlã«ã‚ã‚‹Audioã‚¿ã‚°ã‚’å–ã£ã¦ãã‚‹
 //    soundObj.addEventListener("play" , function(){
 //        console.log("played");
 //    },false);
