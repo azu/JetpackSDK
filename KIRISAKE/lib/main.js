@@ -68,7 +68,6 @@ function playSound(){
 //    soundObj.addEventListener("play" , function(){
 //        console.log("played");
 //    },false);
-    soundObj.src = self.data.url("Recycle.wav");//=>–Â‚ç‚È‚¢Bchrome://“I‚ÈURL
-    // "http://www.htmq.com/html5/sample/sample.ogg";//=>–Â‚é
+    soundObj.src = self.data.url("move.wav");
     soundObj.play();
 }
