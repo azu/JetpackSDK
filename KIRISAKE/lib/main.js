@@ -55,7 +55,7 @@ var myExtension = {
 exports.main = function(options, callbacks) {
     var pageWorker = require("page-worker");
     page = pageWorker.Page({
-        content: self.data.url("clicksound.html"),
+        content: self.data.url("audio.html"),
         onReady: function() {
             myExtension.init();// イベント登録
         }
