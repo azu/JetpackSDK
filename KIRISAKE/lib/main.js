@@ -1,6 +1,5 @@
 var page = {};
 var self = require("self");
-var tabs = require("tabs");
 var {Cc, Ci} = require("chrome");
 // ページ移動時に反応する
 // http://d.hatena.ne.jp/cou929_la/20100301/1267434283
@@ -36,7 +35,6 @@ var myExtension = {
       }
     },
     onProgressChange: function() {},
-    onStatusChange: function() {},
     onSecurityChange: function() {},
     onLinkIconAvailable: function() {}
   },

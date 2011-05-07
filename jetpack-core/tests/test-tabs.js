@@ -111,13 +111,14 @@ exports.testTabProperties = function(test) {
   });
 };
 
-// test tabs iterator
-exports.testTabsIterator= function(test) {
+// test tabs iterator and length property
+exports.testTabsIteratorAndLength = function(test) {
   test.waitUntilDone();
   openBrowserWindow(function(window, browser) {
     let tabs = require("tabs");
     let startCount = 0;
     for each (let t in tabs) startCount++;
+    test.assertEqual(startCount, tabs.length, "length property is correct");
     let url = "data:text/html,default";
     tabs.open(url);
     tabs.open(url);
@@ -127,6 +128,7 @@ exports.testTabsIterator= function(test) {
         let count = 0;
         for each (let t in tabs) count++;
         test.assertEqual(count, startCount + 3, "iterated tab count matches");
+        test.assertEqual(startCount + 3, tabs.length, "iterated tab count matches length property");
         closeBrowserWindow(window, function() test.done());
       }
     });
@@ -210,6 +212,55 @@ exports.testOpen = function(test) {
       }
     });
   });
+};
+
+// open pinned tab
+exports.testOpenPinned = function(test) {
+  const xulApp = require("xul-app");
+  if (xulApp.versionInRange(xulApp.platformVersion, "2.0b2", "*")) {
+    // test tab pinning  
+    test.waitUntilDone();
+    openBrowserWindow(function(window, browser) {
+      let tabs = require("tabs");
+      let url = "data:text/html,default";
+      tabs.open({
+        url: url,
+        isPinned: true,
+        onOpen: function(tab) {
+          test.assertEqual(tab.isPinned, true, "The new tab is pinned");
+          closeBrowserWindow(window, function() test.done());
+        }
+      });
+    });
+  }
+  else {
+    test.pass("Pinned tabs are not supported in this application.");
+  }
+};
+
+// pin/unpin opened tab
+exports.testPinUnpin = function(test) {
+  const xulApp = require("xul-app");
+  if (xulApp.versionInRange(xulApp.platformVersion, "2.0b2", "*")) {
+    test.waitUntilDone();
+    openBrowserWindow(function(window, browser) {
+      let tabs = require("tabs");
+      let url = "data:text/html,default";
+      tabs.open({
+        url: url,
+        onOpen: function(tab) {
+          tab.pin();
+          test.assertEqual(tab.isPinned, true, "The tab was pinned correctly");
+          tab.unpin();
+          test.assertEqual(tab.isPinned, false, "The tab was unpinned correctly");
+          closeBrowserWindow(window, function() test.done());
+        }
+      });
+    });
+  }
+  else {
+    test.pass("Pinned tabs are not supported in this application.");
+  }
 };
 
 // open tab in background
@@ -498,7 +549,7 @@ exports.testPerTabEvents = function(test) {
 
         tab.location = url;
 
-        require("timer").setInterval(function() {
+        require("timer").setTimeout(function() {
           // if this never occurs, the test'll timeout and fail.
           if (eventCount == 2)
             test.pass("both listeners notified");

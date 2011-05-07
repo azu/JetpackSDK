@@ -69,6 +69,7 @@ const apiutils = require("api-utils");
 const collection = require("collection");
 const errors = require("errors");
 const prefs = require("preferences-service");
+const panels = require("panel");
 
 // Expose public APIs for creating/adding/removing widgets
 exports.Widget = apiutils.publicConstructor(Widget);
@@ -83,6 +84,9 @@ function Widget(options) {
       ok: function (v) v.length > 0,
       msg: "The widget must have a non-empty label property."
     },
+    tooltip: {
+      is: ["null", "undefined", "string"],
+    },
     image: {
       is: ["null", "undefined", "string"],
     },
@@ -91,6 +95,10 @@ function Widget(options) {
     },
     width:  {
       is: ["null", "undefined", "number"],
+    },
+    panel: {
+      is: ["null", "undefined", "object"],
+      ok: function(v) !v || v instanceof panels.Panel
     },
     onClick: {
       is: ["function", "array", "null", "undefined"],
@@ -122,6 +130,12 @@ function Widget(options) {
     browserManager.updateItem(self, "width", width);
   });
 
+  this.__defineGetter__("tooltip", function() options.tooltip || options.label);
+  this.__defineSetter__("tooltip", function(text) {
+    options.tooltip = text;
+    browserManager.updateItem(self, "tooltip", text);
+  });
+
   if (options.image) {
     this.__defineGetter__("image", function() options.image);
     this.__defineSetter__("image", function(image) {
@@ -137,6 +151,11 @@ function Widget(options) {
       browserManager.updateItem(self, "content", content);
     });
   }
+
+    this.__defineGetter__("panel", function() options.panel || undefined);
+    this.__defineSetter__("panel", function(panel) {
+      options.panel = panel;
+    });
 
   for (let method in EVENTS) {
     // create collection for the event as a widget property
@@ -202,6 +221,8 @@ let browserManager = {
       throw new Error("The widget " + item + " has already been added.");
     this.items.push(item);
     this.windows.forEach(function (w) w.addItems([item]));
+    if (item.panel)
+      panels.add(item.panel);
   },
 
   // Updates the content of an item registered with the manager,
@@ -222,6 +243,8 @@ let browserManager = {
                       "and therefore cannot be removed.");
     }
     this.items.splice(idx, 1);
+    if (item.panel)
+      panels.remove(item.panel);
     this.windows.forEach(function (w) w.removeItems([item]));
   },
 
@@ -370,6 +393,9 @@ BrowserWindow.prototype = {
           item.node.style.minWidth = value + "px";
           item.node.querySelector("iframe").style.width = value + "px";
           break;
+        case "tooltip":
+          item.node.setAttribute("tooltiptext", value);
+          break;
       }
     }
   },
@@ -382,7 +408,7 @@ BrowserWindow.prototype = {
     let id = "widget: " + guid;
     node.setAttribute("id", id);
     node.setAttribute("label", widget.label);
-    node.setAttribute("tooltiptext", widget.description);
+    node.setAttribute("tooltiptext", widget.tooltip);
 
     // TODO move into a stylesheet
     node.setAttribute("style", [
@@ -522,6 +548,13 @@ BrowserWindow.prototype = {
       let handler = getHandlerForType(e.type);
       for (let callback in item.widget[handler])
         require("errors").catchAndLog(function(e) callback.apply(item.widget, [e]))(e);
+
+      // Special case for click events: if the widget doesn't have a click
+      // handler, but it does have a panel, display the panel.
+      if (e.type == "click" && item.widget[handler].length == 0 &&
+          item.widget.panel) {
+        item.widget.panel.show(item.node);
+      }
     };
 
     item.eventListeners = {};

@@ -37,7 +37,7 @@
 var obsvc = require("observer-service");
 var {Cc,Ci} = require("chrome");
 
-function runTests(iterations, filter, verbose, rootPaths, quit, print) {
+function runTests(iterations, filter, profileMemory, verbose, rootPaths, quit, print) {
   var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"]
            .getService(Ci.nsIWindowWatcher);
 
@@ -46,22 +46,37 @@ function runTests(iterations, filter, verbose, rootPaths, quit, print) {
 
   var harness = require("harness");
 
+  var startTime = new Date();
+  const MIN_RUN_TIME = 12321;
+
   function onDone(tests) {
-    window.close();
-    if (tests.passed > 0 && tests.failed == 0) {
-      quit("OK");
-    } else {
-      if (tests.passed == 0) {
-        print("No tests were run\n");
+    function finish() {
+      window.close();
+      if (tests.passed > 0 && tests.failed == 0) {
+        quit("OK");
       } else {
-        printFailedTests(tests, verbose, print);
+        if (tests.passed == 0) {
+          print("No tests were run\n");
+        } else {
+          printFailedTests(tests, verbose, print);
+        }
+        quit("FAIL");
       }
-      quit("FAIL");
     }
-  };
+
+    // Make sure the host application stays open for a minimum amount of time
+    // to reduce our chances of running into platform bug 468736.
+    // FIXME: remove this workaround once platform bug 468736 is fixed.
+    var elapsedTime = new Date() - startTime;
+    if (elapsedTime < MIN_RUN_TIME)
+      require("timer").setTimeout(finish, MIN_RUN_TIME - elapsedTime);
+    else
+      finish();
+  }
 
   harness.runTests({iterations: iterations,
                     filter: filter,
+                    profileMemory: profileMemory,
                     verbose: verbose,
                     rootPaths: rootPaths,
                     print: print,
@@ -100,8 +115,9 @@ exports.main = function main(options, callbacks) {
     if (!testsStarted) {
       testsStarted = true;
       runTests(options.iterations, options.filter,
-               options.verbose, options.rootPaths,
-               callbacks.quit, callbacks.print);
+               options.profileMemory, options.verbose,
+               options.rootPaths, callbacks.quit,
+               callbacks.print);
     }
   }
 

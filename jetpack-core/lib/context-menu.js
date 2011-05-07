@@ -479,9 +479,11 @@ BrowserWindow.prototype = {
   // ancestors matches selector.
   _popupNodeMatchingSelector: function BW__popupNodeMatchingSelector(selector) {
     let cursor = this.doc.popupNode;
-    while (cursor && !(cursor instanceof Ci.nsIDOMHTMLHtmlElement)) {
+    while (cursor) {
       if (cursor.mozMatchesSelector(selector))
         return cursor;
+      if (cursor instanceof Ci.nsIDOMHTMLHtmlElement)
+        break;
       cursor = cursor.parentNode;
     }
     return null;
@@ -717,7 +719,7 @@ function ContextMenuPopup(popupElt, window) {
     if (event.type === "command") {
       this.__proto__.handleEvent.call(this, event);
     }
-    else if (event.type === "popupshowing") {
+    else if (event.type === "popupshowing" && event.target === popupElt) {
       try {
         // Show and hide items.  Set a "jetpackContextCurrent" property on the
         // DOM elements to signal which of our items match the current context.

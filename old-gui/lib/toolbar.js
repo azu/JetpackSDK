@@ -1,5 +1,6 @@
 const apiutils = require("api-utils");
 const collection = require("collection");
+const errors = require("errors");
 const storage = require("simple-storage").storage;
 const windowItems = require("window-items");
 
@@ -16,8 +17,11 @@ function Widget(options){
     label: {
       is: ["null", "undefined", "string"],
     },
-    image: {
+    tooltip: {
       is: ["null", "undefined", "string"],
+    },
+    image: {
+      is: ["string"],
     },
     onClick: {
       is: ["function", "array", "null", "undefined"],
@@ -29,14 +33,13 @@ function Widget(options){
       is: ["function", "array", "null", "undefined"],
     }
   });
-  if (!(options.image || options.content)) {
-    throw new Error("No image or content property found. Widgets must have one or the other.");
-  }
 
   this.__defineGetter__("label", function() options.label);
-  this.__defineSetter__("label", function(label) {
-    options.label = label;
-    manager.updateItem(this, "label", label);
+
+  this.__defineGetter__("tooltip", function() options.tooltip || options.label);
+  this.__defineSetter__("tooltip", function(text) {
+    options.tooltip = text;
+    manager.updateItem(this, "tooltip", text);
   });
   this.__defineGetter__("image", function() options.image);
   this.__defineSetter__("image", function(image) {
@@ -89,7 +92,7 @@ function addEventHandlers(node, item) {
   for (let [method, type] in Iterator(EVENTS)) {
     for(let listener in item[method]) {
       node.addEventListener(type, function(e){
-        listener.apply(item, [e]);
+        errors.catchAndLog(function(e) listener.apply(item, [e]))(e);
       }, false);
     }
   }
@@ -139,9 +142,9 @@ var manager = windowItems.Manager({
     let node = win.document.createElement("toolbarbutton");
     if(item.id) node.setAttribute("id", getItemId(item));
     node.setAttribute("class", "toolbarbutton-1");
-    if(item.label) {
-      node.setAttribute("label", item.label);
-      node.setAttribute("tooltiptext", item.label);
+    if(item.tooltip) {
+      node.setAttribute("label", item.tooltip);
+      node.setAttribute("tooltiptext", item.tooltip);
     }
     if(item.image) {
       node.setAttribute("style", "list-style-image: url('" + item.image + "');");
@@ -164,7 +167,7 @@ var manager = windowItems.Manager({
   onUpdate: function(win, item, property, value) {
     let node = getItemNode(win, item);
     if(node) {
-      if(property == "label"){
+      if(property == "tooltip"){
         if(value){
           node.setAttribute("label", value);
           node.setAttribute("tooltiptext", value);

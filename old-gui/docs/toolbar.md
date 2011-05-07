@@ -2,67 +2,58 @@ The `toolbar` module provides a way for extensions to create toolbar icons.
 
 ## Constructors ##
 
-<tt>toolbar.**Widget**(*options*)</tt>
+<api name="Widget">
+@constructor {options}
+  Creates a new widget.
 
-Creates a new widget. *options* is an object with
-the following keys.  If any option is invalid, an exception is thrown.
 
-<table>
-  <tr>
-    <td><tt>image</tt></td>
-    <td>
-      An optional string URL of an image from your package to use
-      as the displayed content of the <tt>Widget</tt>.
+@param options {object}
+  An object with the following keys:
 
-      See the `self` module for directions on where in your package to store
-      your static data files.
-    </td>
-  </tr>
-  <tr>
-    <td><tt>label</tt></td>
-    <td>
-      An optional string to use as the displayed text in the tooltip.
-    </td>
-  </tr>
-  <tr>
-    <td><tt>onClick</tt></td>
-    <td>
-      An optional function to be called when the <tt>Widget</tt> is clicked.
-      It is called as <tt>onClick(<em>event</em>)</tt>. <em>event</em> is the 
-      standard DOM event object.
-    </td>
-  </tr>
-  <tr>
-    <td><tt>onMouseover</tt></td>
-    <td>
-      An optional function to be called when the user passes the mouse
-      over the <tt>Widget</tt>.
-      
-      It is called as <tt>onMouseover(<em>event</em>)</tt>. <em>event</em>
-      is the standard DOM event object.
-    </td>
-  </tr>
-  <tr>
-    <td><tt>onMouseout</tt></td>
-    <td>
-      An optional function to be called when the mouse is no longer
-      over the <tt>Widget</tt>.
-      
-      It is called as <tt>onMouseout(<em>event</em>)</tt>. <em>event</em>
-      is the standard DOM event object.
-    </td>
-  </tr>
-</table>
+  @prop [label] {string}
+    An optional string description of the widget used for accessibility
+    and error reporting.
+
+  @prop [tooltip] {string}
+    An optional text to show as a button label. If not given, the `label` is used.
+
+  @prop image {string}
+    An required string URL of an image from your package to use as the displayed
+    content of the widget.  See the [`self`](#module/jetpack-core/self) module
+    for directions on where in your package to store your static data files.
+
+  @prop [onClick] {callback}
+    An optional function to be called when the widget is clicked. It is called
+    as `onClick(event)`. `event` is the standard DOM event object.
+
+  @prop [onMouseover] {callback}
+    An optional function to be called when the user passes the mouse over the
+    widget. It is called as `onClick(event)`. `event` is the standard DOM event
+    object.
+
+  @prop [onMouseout] {callback}
+    An optional function to be called when the mouse is no longer over the
+    widget. It is called as `onClick(event)`. `event` is the standard DOM event
+    object.
+</api>
 
 ## Functions ##
 
-<tt>statusbar.**add**(*Widget*)</tt>
+<api name="add">
+@function
+  Adds a widget to the toolbar palette.
 
-Adds a widget to the toolbar palette.
+@param widget {Widget}
+  Widget to be added.
+</api>
 
-<tt>statusbar.**remove**(*Widget*)</tt>
+<api name="remove">
+@function
+  Removes a widget from the toolbar palette.
 
-Removes a widget from the toolbar palette.
+@param Widget {Widget}
+  Widget to be removed.
+</api>
 
 ## Examples ##
 

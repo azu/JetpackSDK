@@ -58,8 +58,8 @@ var iterationsLeft;
 // Only tests in files whose names match this regexp filter will be run.
 var filter;
 
-// Information on memory profiler binary component (optional).
-var profiler;
+// Whether to report memory profiling information.
+var profileMemory;
 
 // Combined information from all test runs.
 var results = {
@@ -154,24 +154,6 @@ function reportMemoryUsage() {
   memory.gc();
   sandbox.memory.gc();
 
-  if (profiler) {
-    var namedObjects = {};
-    for (url in sandbox.sandboxes)
-      namedObjects[url] = sandbox.sandboxes[url].globalScope;
-
-    var parentSandbox = require("cuddlefish").parentLoader;
-    for (url in parentSandbox.sandboxes)
-      namedObjects["(harness) " + url] = parentSandbox.sandboxes[url].globalScope;
-
-    var result = profiler.binary.profileMemory(profiler.script,
-                                               profiler.scriptUrl,
-                                               1,
-                                               namedObjects);
-    result = JSON.parse(result);
-    if (result.success)
-      analyzeRawProfilingData(result.data);
-  }
-
   var mgr = Cc["@mozilla.org/memory-reporter-manager;1"]
             .getService(Ci.nsIMemoryReporterManager);
   var reporters = mgr.enumerateReporters();
@@ -190,20 +172,26 @@ function reportMemoryUsage() {
         weakrefs.length + "\n");
 }
 
-var gWeakrefs;
+var gWeakrefInfo;
 
 function showResults() {
   memory.gc();
 
-  if (gWeakrefs)
-    gWeakrefs.forEach(
-      function(weakref) {
-        var ref = weakref.get();
+  if (gWeakrefInfo) {
+    gWeakrefInfo.forEach(
+      function(info) {
+        var ref = info.weakref.get();
         if (ref !== null) {
           var data = ref.__url__ ? ref.__url__ : ref;
-          console.warn("LEAK", data);
+          var warning = data == "[object Object]"
+            ? "[object " + data.constructor.name + "(" +
+              [p for (p in data)].join(", ") + ")]"
+            : data;
+          console.warn("LEAK", warning, info.bin);
         }
-      });
+      }
+    );
+  }
 
   print("\n");
   var total = results.passed + results.failed;
@@ -218,8 +206,10 @@ function cleanup() {
                            "module global scope: " + name);
     sandbox.memory.track(sandbox, "Cuddlefish Loader");
 
-    gWeakrefs = [info.weakref
-                 for each (info in sandbox.memory.getObjects())];
+    if (profileMemory) {
+      gWeakrefInfo = [{ weakref: info.weakref, bin: info.bin }
+                      for each (info in sandbox.memory.getObjects())];
+    }
 
     sandbox.unload();
 
@@ -253,7 +243,9 @@ function nextIteration(tests) {
   if (tests) {
     results.passed += tests.passed;
     results.failed += tests.failed;
-    reportMemoryUsage();
+
+    if (profileMemory)
+      reportMemoryUsage();
     
     let testRun = [];
     for each (let test in tests.testRunSummary) {
@@ -268,15 +260,21 @@ function nextIteration(tests) {
     iterationsLeft--;
   }
   if (iterationsLeft)
-    sandbox.require("unit-test").findAndRunTests({dirs: dirs,
-                                                  filter: filter,
-                                                  onDone: nextIteration});
+    sandbox.require("unit-test").findAndRunTests({
+      testOutOfProcess: packaging.enableE10s,
+      testInProcess: true,
+      fs: sandbox.fs,
+      dirs: dirs,
+      filter: filter,
+      onDone: nextIteration
+    });
   else
     require("timer").setTimeout(cleanup, 0);
 }
 
 var POINTLESS_ERRORS = [
-  "Invalid chrome URI:"
+  "Invalid chrome URI:",
+  "OpenGL LayerManager Initialized Succesfully."
 ];
 
 var consoleListener = {
@@ -317,6 +315,7 @@ function TestRunnerConsole(base, options) {
 var runTests = exports.runTests = function runTests(options) {
   iterationsLeft = options.iterations;
   filter = options.filter;
+  profileMemory = options.profileMemory;
   onDone = options.onDone;
   print = options.print;
 
@@ -327,25 +326,24 @@ var runTests = exports.runTests = function runTests(options) {
     var ptc = require("plain-text-console");
     var url = require("url");
 
-    try {
-      var nsjetpack = require("nsjetpack");
-      profiler = {
-        binary: nsjetpack.get(),
-        scriptUrl: packaging.getURLForData("profiler.js")
-      };
-
-      profiler.scriptPath = url.toFilename(profiler.scriptUrl);
-      profiler.script = require("file").read(profiler.scriptPath);
-    } catch (e) {}
-
     dirs = [url.toFilename(path)
             for each (path in options.rootPaths)];
     var console = new TestRunnerConsole(new ptc.PlainTextConsole(print),
                                         options);
     var globals = {packaging: packaging};
 
+    var xulApp = require("xul-app");
+    var xulRuntime = Cc["@mozilla.org/xre/app-info;1"]
+                     .getService(Ci.nsIXULRuntime);
+
+    print("Running tests on " + xulApp.name + " " + xulApp.version +
+          "/Gecko " + xulApp.platformVersion + " (" + 
+          xulApp.ID + ") under " +
+          xulRuntime.OS + "/" + xulRuntime.XPCOMABI + ".\n");
+
     sandbox = new cuddlefish.Loader({console: console,
                                      globals: globals,
+                                     packaging: packaging,
                                      __proto__: options});
     nextIteration();
   } catch (e) {

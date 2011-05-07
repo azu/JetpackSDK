@@ -4,5 +4,7 @@
         "jetpack-core"
     ], 
     "description": "OLD GUI API", 
-    "author": "asukaze (http://www.asukaze.net)"
+    "author": "asukaze (http://www.asukaze.net)",
+    "version": "0.2.1",
+    "license": "MPL 1.1/GPL 2.0/LGPL 2.1"
 }

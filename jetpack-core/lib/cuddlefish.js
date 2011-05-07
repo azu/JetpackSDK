@@ -79,19 +79,80 @@
      this.require("unload").send(reason);
    }
 
-   var cuddlefishSandboxFactory = {
-     createSandbox: function(options) {
-       var filename = options.filename ? options.filename : null;
-       var sandbox = this.__proto__.createSandbox(options);
-       sandbox.defineProperty("__url__", filename);
-       return sandbox;
-     },
-     __proto__: new securableModule.SandboxFactory("system")
-   };
+   function makeGetModuleExports(delegate) {
+     return function getModuleExports(basePath, module) {
+       switch (module) {
+       case "chrome":
+         var chrome = { Cc: Components.classes,
+                        Ci: Components.interfaces,
+                        Cu: Components.utils,
+                        Cr: Components.results,
+                        Cm: Components.manager,
+                        components: Components };
+         return chrome;
+       case "parent-loader":
+         return this;
+       default:
+         return (delegate ? delegate.call(this, basePath, module) : null);
+       }
+     };
+   }
 
-   function CuddlefishModule(loader) {
-     this.parentLoader = loader;
-     this.__proto__ = exports;
+   function modifyModuleSandbox(sandbox, options) {
+     let ES5 = this.require('es5');
+     if ('init' in ES5) {
+       let { Object, Array, Function } = sandbox.globalScope;
+       ES5.init(Object, Array, Function);
+     }
+     var filename = options.filename ? options.filename : null;
+     sandbox.defineProperty("__url__", filename);
+   }
+
+   function makeManifestChecker(packaging) {
+     var mc = {
+       _allow: function _allow(loader, basePath, module) {
+         if (!basePath) {
+           return true; /* top-level import */
+         }
+         let mi = packaging.getModuleInfo(basePath);
+         if (mi.needsChrome)
+           /* The module requires chrome, it can import whatever it 
+            * wants. */
+           return true;
+         if (!mi.dependencies) {
+           /* the parent isn't in the manifest: we know nothing about it */
+         } else {
+           for (var i = 0; i < mi.dependencies.length; i++) {
+             let dep = mi.dependencies[i];
+             if (module == dep)
+               return true; /* they're on the list: allow the require() */
+           }
+         }
+         loader.console.warn("undeclared require(" + module + 
+                             ") called from " + basePath);
+         //return false;  // enable this in 0.9
+         return true;
+       },
+       allowEval: function allowEval(loader, basePath, module, options) {
+         return this._allow(loader, basePath, module);
+       },
+
+       allowImport: function allowImport(loader, basePath, module, exports) {
+         /* allowEval catches everything except "magic" modules like
+            "chrome", which are checked here */
+         if (module == "chrome") {
+           let mi = packaging.getModuleInfo(basePath);
+           if (mi.needsChrome)
+             return true; /* chrome is on the list, allow it */
+           loader.console.warn("undeclared require(chrome) called from " +
+                               basePath);
+           //return false;  // enable this in 0.9
+           return true;
+         }
+         return this._allow(loader, basePath, module);
+       }
+     };
+     return mc;
    }
 
    var Loader = exports.Loader = function Loader(options) {
@@ -106,18 +167,25 @@
      if (options.memory)
        globals.memory = options.memory;
 
-     var modules = options.modules || {};
+     if ('modules' in options)
+       throw new Error('options.modules is no longer supported');
+
+     var getModuleExports = makeGetModuleExports(options.getModuleExports);
+
+     var manifestChecker = undefined;
+     if (options.packaging)
+       manifestChecker = makeManifestChecker(options.packaging);
 
      var loaderOptions = {rootPath: options.rootPath,
                           rootPaths: options.rootPaths,
                           fs: options.fs,
-                          sandboxFactory: cuddlefishSandboxFactory,
+                          defaultPrincipal: "system",
                           globals: globals,
-                          modules: modules};
+                          modifyModuleSandbox: modifyModuleSandbox,
+                          securityPolicy: manifestChecker,
+                          getModuleExports: getModuleExports};
 
      var loader = new securableModule.Loader(loaderOptions);
-     var path = loader.fs.resolveModule(null, "cuddlefish");
-     modules[path] = new CuddlefishModule(loader);
 
      if (!globals.console) {
        var console = loader.require("plain-text-console");

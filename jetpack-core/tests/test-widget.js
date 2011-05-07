@@ -1,9 +1,10 @@
+const {Cc,Ci} = require("chrome");
 
 exports.testConstructor = function(test) {
 
   const tabBrowser = require("tab-browser");
 
-  test.waitUntilDone();
+  test.waitUntilDone(30000);
 
   tabBrowser.addTab("about:blank", { inNewWindow: true, onLoad: function(e) {
     const widgets = require("widget");
@@ -289,6 +290,48 @@ exports.testConstructor = function(test) {
         }
       }
     })));
+    
+    // test tooltip
+    tests.push(function() testSingleWidget(widgets.Widget({
+      label: "text widget",
+      content: "oh yeah",
+      tooltip: "foo",
+      onReady: function(e) {
+        test.assertEqual(this.tooltip, "foo", "tooltip matches");
+        widgets.remove(this)
+        doneTest();
+      }
+    })));
+    
+    // test tooltip fallback to label
+    tests.push(function() testSingleWidget(widgets.Widget({
+      label: "fallback",
+      content: "oh yeah",
+      onReady: function(e) {
+        test.assertEqual(this.tooltip, this.label, "tooltip fallbacks to label");
+        widgets.remove(this)
+        doneTest();
+      }
+    })));
+
+    // test updating widget tooltip
+    let updated = false;
+    tests.push(function() testSingleWidget(widgets.Widget({
+      label: "tooltip update test widget",
+      tooltip: "foo",
+      content: "<div id='me'>foo</div>",
+      onReady: function(e) {
+        if (!updated) {
+          this.tooltip = "bar";
+          updated = true;
+        }
+        else {
+          test.assertEqual(this.tooltip, "bar", "tooltip gets updated");
+          widgets.remove(this);
+          doneTest();
+        }
+      }
+    })));
 
     // test multiple windows
     tests.push(function() {
@@ -374,6 +417,65 @@ exports.testConstructor = function(test) {
     doneTest();
   }});
 };
+
+exports.testPanelWidget = function testPanelWidget(test) {
+  let widgets = require("widget");
+  let widget1 = widgets.Widget({
+    label: "panel widget 1",
+    content: "<div id='me'>foo</div>",
+    onLoad: function(e) {
+      sendMouseEvent({type:"click"}, "me", e.target.defaultView);
+    },
+    panel: require("panel").Panel({
+      contentURL: "data:text/html,<body>Look ma, a panel!</body>",
+      onShow: function() {
+        widgets.remove(widget1);
+        test.pass("panel displayed on click");
+        test.done();
+      }
+    })
+  });
+  widgets.add(widget1);
+
+  test.assertRaises(
+    function() {
+      widgets.Widget({
+        label: "panel widget 2",
+        panel: {}
+      });
+    },
+    "The option \"panel\" must be one of the following types: null, undefined, object",
+    "widget.panel must be a Panel object"
+  );
+
+  let onClickCalled = false;
+  let widget3 = widgets.Widget({
+    label: "panel widget 3",
+    content: "<div id='me'>foo</div>",
+    onLoad: function(e) {
+      sendMouseEvent({type:"click"}, "me", e.target.defaultView);
+    },
+    onClick: function() {
+      onClickCalled = true;
+      this.panel.show();
+    },
+    panel: require("panel").Panel({
+      contentURL: "data:text/html,<body>Look ma, a panel!</body>",
+      onShow: function() {
+        test.assert(
+          onClickCalled,
+          "onClick called on click for widget with both panel and onClick"
+        );
+        widgets.remove(widget3);
+        test.done();
+      }
+    })
+  });
+  widgets.add(widget3);
+
+  test.waitUntilDone();
+};
+
 
 /******************* helpers *********************/
 
