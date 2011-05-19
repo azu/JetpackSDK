@@ -31,7 +31,11 @@ var widget = widgets.Widget({
     label: "Password generator",
     contentURL: self.data.url('keyicon.png'),
     onClick: function() {
-        var password = port.genaratePassword(12, true, true);
+        var passLength = 12,
+                useNumbers = true,
+                useUpperCaseCharacters = true,
+                additinals = "";
+        var password = port.genaratePassword(passLength, useNumbers, useUpperCaseCharacters, additinals);
         // クリップボードにコピーする
         clipboard.set(password, "text");
         port.insertPassToContent(password);
