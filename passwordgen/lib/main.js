@@ -25,7 +25,7 @@ var port = (function() {
         "insertPassToContent" : insertPassToContent
     }
 })();
-
+// アドオンバーにアイコン表示
 var widget = widgets.Widget({
     id: "efcl-passwordgen",
     label: "Password generator",
