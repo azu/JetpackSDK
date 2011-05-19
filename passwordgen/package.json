@@ -1,0 +1,9 @@
+{
+    "name": "passwordgen", 
+    "license": "MIT",
+    "author": "azu",
+    "version": "0.1", 
+    "fullName": "passwordgen", 
+    "id": "jid1-RsLjaOHNnFid0g", 
+    "description": "generate password & copy & insert password textarea/"
+}
