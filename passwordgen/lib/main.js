@@ -2,16 +2,14 @@ let widgets = require("widget");
 let tabs = require("tabs");
 let clipboard = require("clipboard");
 let generateRandomString = require("random-string-generator").generateRandomString;
-let pageMod = require("page-mod");
 let self = require("self");
 var prefSet = require("simple-prefs");
 
 var port = (function () {
 
     // パスワードを生成して、返す
-    function genaratePassword(length, useNumbers, useUpperCaseCharacters, additinals) {
-        var password = generateRandomString(length, useNumbers, useUpperCaseCharacters, additinals);
-        return password;
+    function generatePassword(length, useNumbers, useUpperCaseCharacters, additinals) {
+        return generateRandomString(length, useNumbers, useUpperCaseCharacters, additinals);
     }
 
     function insertPassToContent(password) {
@@ -24,7 +22,7 @@ var port = (function () {
     }
 
     return {
-        "genaratePassword":genaratePassword,
+        "generatePassword":generatePassword,
         "insertPassToContent":insertPassToContent
     }
 })();
@@ -39,15 +37,13 @@ var widget = widgets.Widget({
                 useNumbers = prefs.useNumbers,
                 useUpperCaseCharacters = prefs.useUpperCaseCharacters,
                 additionalCharacters = prefs.additionalCharacters.split("");
-        var password = port.genaratePassword(passLength, useNumbers, useUpperCaseCharacters, additionalCharacters);
+        var password = port.generatePassword(passLength, useNumbers, useUpperCaseCharacters, additionalCharacters);
         // クリップボードにコピーする
         clipboard.set(password, "text");
         port.insertPassToContent(password);
     }
 });
 // 設定
-var strPref = prefSet.prefs.stringPreference;
-// define a generic prefs change callback
 function onPrefChange(prefName) {
     console.log("The " + prefName +
             " preference changed, current value is: " +
