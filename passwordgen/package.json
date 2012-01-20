@@ -1,9 +1,35 @@
 {
-    "name": "passwordgen", 
-    "license": "MIT license",
-    "author": "azu",
-    "version": "0.1", 
-    "fullName": "passwordgen", 
-    "id": "jid1-RsLjaOHNnFid0g", 
-    "description": "generate password & copy & insert password textarea/"
+    "name":"passwordgen",
+    "license":"MIT license",
+    "author":"azu",
+    "version":"0.1",
+    "fullName":"passwordgen",
+    "id":"jid1-RsLjaOHNnFid0g",
+    "description":"generate password & copy & insert password textarea",
+    "preferences":[
+        {
+            "type":"integer",
+            "name":"passLength",
+            "value":12,
+            "title":"Pass Word length Integer Pref"
+        },
+        {
+            "type":"bool",
+            "name":"useNumbers",
+            "value":true,
+            "title":"Use numbers Boolean Pref"
+        },
+        {
+            "type":"bool",
+            "name":"useUpperCaseCharacters",
+            "value":false,
+            "title":"useUpperCaseCharacters Boolean Pref"
+        },
+        {
+            "type":"string",
+            "name":"additionalCharacters",
+            "value":"",
+            "title":"String Preference"
+        }
+    ]
 }
