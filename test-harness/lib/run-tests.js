@@ -1,86 +1,66 @@
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Jetpack.
- *
- * The Initial Developer of the Original Code is Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2007
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Atul Varma <atul@mozilla.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-var obsvc = require("observer-service");
+"use strict";
+
+var obsvc = require("api-utils/observer-service");
+var system = require("api-utils/system");
+var options = require('@packaging');
 var {Cc,Ci} = require("chrome");
 
-function runTests(iterations, filter, profileMemory, verbose, rootPaths, quit, print) {
+function runTests(iterations, filter, profileMemory, stopOnError, verbose, exit, print) {
   var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"]
            .getService(Ci.nsIWindowWatcher);
 
-  var window = ww.openWindow(null, "data:text/plain,Running tests...",
-                             "harness", "centerscreen", null);
+  let ns = 'http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul';
+  let msg = 'Running tests...';
+  let markup = '<?xml version="1.0"?><window xmlns="' + ns +
+               '" windowtype="test:runner"><label>' + msg + '</label></window>';
+  let url = "data:application/vnd.mozilla.xul+xml," + escape(markup);
 
-  var harness = require("harness");
 
-  var startTime = new Date();
-  const MIN_RUN_TIME = 12321;
+  var window = ww.openWindow(null, url, "harness", "centerscreen", null);
+
+  var harness = require("./harness");
 
   function onDone(tests) {
-    function finish() {
-      window.close();
-      if (tests.passed > 0 && tests.failed == 0) {
-        quit("OK");
-      } else {
-        if (tests.passed == 0) {
-          print("No tests were run\n");
-        } else {
-          printFailedTests(tests, verbose, print);
-        }
-        quit("FAIL");
-      }
+    window.close();
+    if (tests.failed == 0) {
+      if (tests.passed === 0)
+        print("No tests were run\n");
+      exit(0);
+    } else {
+      printFailedTests(tests, verbose, print);
+      exit(1);
     }
+  };
 
-    // Make sure the host application stays open for a minimum amount of time
-    // to reduce our chances of running into platform bug 468736.
-    // FIXME: remove this workaround once platform bug 468736 is fixed.
-    var elapsedTime = new Date() - startTime;
-    if (elapsedTime < MIN_RUN_TIME)
-      require("timer").setTimeout(finish, MIN_RUN_TIME - elapsedTime);
-    else
-      finish();
-  }
+  // We have to wait for this window to be fully loaded *and* focused
+  // in order to avoid it to mess with our various window/focus tests.
+  // We are first waiting for our window to be fully loaded before ensuring
+  // that it will take the focus, and then we wait for it to be focused.
+  window.addEventListener("load", function onload() {
+    window.removeEventListener("load", onload, true);
 
-  harness.runTests({iterations: iterations,
-                    filter: filter,
-                    profileMemory: profileMemory,
-                    verbose: verbose,
-                    rootPaths: rootPaths,
-                    print: print,
-                    onDone: onDone});
+    window.addEventListener("focus", function onfocus() {
+      window.removeEventListener("focus", onfocus, true);
+      // Finally, we have to run test on next cycle, otherwise XPCOM components
+      // are not correctly updated.
+      // For ex: nsIFocusManager.getFocusedElementForWindow may throw
+      // NS_ERROR_ILLEGAL_VALUE exception.
+      require("timer").setTimeout(function () {
+        harness.runTests({iterations: iterations,
+                          filter: filter,
+                          profileMemory: profileMemory,
+                          stopOnError: stopOnError,
+                          verbose: verbose,
+                          print: print,
+                          onDone: onDone});
+      }, 0);
+    }, true);
+    window.focus();
+  }, true);
 }
 
 function printFailedTests(tests, verbose, print) {
@@ -108,27 +88,14 @@ function printFailedTests(tests, verbose, print) {
   }
 }
 
-exports.main = function main(options, callbacks) {
+exports.main = function main() {
   var testsStarted = false;
 
-  function doRunTests() {
-    if (!testsStarted) {
-      testsStarted = true;
-      runTests(options.iterations, options.filter,
-               options.profileMemory, options.verbose,
-               options.rootPaths, callbacks.quit,
-               callbacks.print);
-    }
-  }
-
-  // TODO: This is optional code that might be put in by
-  // something running this code to force it to just
-  // run tests immediately, rather than wait. We need
-  // to actually standardize on this, though.
-  if (options.runImmediately) {
-    doRunTests();
-  }
-  else {
-    obsvc.add(obsvc.topics.APPLICATION_READY, doRunTests);
+  if (!testsStarted) {
+    testsStarted = true;
+    runTests(options.iterations, options.filter,
+             options.profileMemory, options.stopOnError, options.verbose,
+             system.exit,
+             dump);
   }
 };

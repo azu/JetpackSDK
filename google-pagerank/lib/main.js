@@ -181,3 +181,4 @@ exports.main = function(options, callbacks) {
         return escape(url).replace(/\+/g, '%2C').replace(/\"/g, '%22').replace(/\'/g, '%27');
     }
 // cfx run -a firefox -b "C:\Program Files\Mozilla Firefox\firefox.exe" -P "%appdata%\Mozilla\Firefox\Profiles\h545wqkn.jetpack"
+
